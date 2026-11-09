@@ -21,7 +21,7 @@ list_of_files = [
     f"src/{Project_name}/config/__init__.py",
     f"src/{Project_name}/config/configuration.py",
     f"src/{Project_name}/entity/__init__.py",
-    f"src/{Project_name}/pipeline/__init__py",
+    f"src/{Project_name}/pipeline/__init__.py",
     f"src/{Project_name}/constants/__init__.py",
     f"src/{Project_name}/logging/__init__.py",
     # Monitoring
