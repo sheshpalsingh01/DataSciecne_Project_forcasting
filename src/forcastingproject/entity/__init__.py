@@ -7,3 +7,8 @@ class DataIngestionConfig:
     train_data: Path
     store_data: Path
 
+@dataclass(frozen=True)
+class DataValidationConfig:
+    root_dir : Path
+    data_file_dir: Path
+    status_file: Path

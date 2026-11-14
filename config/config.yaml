@@ -4,4 +4,8 @@ data_ingestion:
     root_dir : artifacts/data_ingestion
     train_data: data/train.csv
     store_data: data/store.csv
-    
+
+data_validation:
+    root_dir : artifacts/data_validation
+    data_file_dir: artifacts/data_ingestion/raw.csv
+    status_file: artifacts/data_validation/status.txt

@@ -223,4 +223,6 @@ __marimo__/
 artifacts/
 logs/
 .vscode
-data
+data/
+flow.md
+
