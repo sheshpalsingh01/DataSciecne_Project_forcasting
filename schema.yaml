@@ -1,0 +1,23 @@
+COLUMNS:
+  Store: int64
+  DayOfWeek: int64
+  Date: object
+  Sales: int64
+  Customers: int64
+  Open: int64
+  Promo: int64
+  StateHoliday: object
+  SchoolHoliday: int64
+  StoreType: object
+  Assortment: object
+  CompetitionDistance: float64
+  CompetitionOpenSinceMonth: float64
+  CompetitionOpenSinceYear: float64
+  Promo2: int64
+  Promo2SinceWeek: float64
+  Promo2SinceYear: float64
+  PromoInterval: object
+
+TARGET_COLUMN:
+  name: Sales
+

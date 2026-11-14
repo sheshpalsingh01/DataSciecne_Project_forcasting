@@ -22,15 +22,43 @@ except ModuleNotFoundError:
 from ensure import ensure_annotations
 from typing_extensions import Any
 
+try:
+    from box import ConfigBox
+except ImportError:
+    class ConfigBox(dict):
+        """A dict subclass that allows attribute-style access like ConfigBox."""
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            for key, value in list(self.items()):
+                if isinstance(value, dict) and not isinstance(value, ConfigBox):
+                    self[key] = ConfigBox(value)
+
+        def __getattr__(self, item):
+            try:
+                val = self[item]
+                if isinstance(val, dict) and not isinstance(val, ConfigBox):
+                    val = ConfigBox(val)
+                    self[item] = val
+                return val
+            except KeyError:
+                raise AttributeError(f"'ConfigBox' object has no attribute '{item}'")
+
+        def __setattr__(self, key, value):
+            self[key] = value
+
 
 @ensure_annotations
-def read_yaml_file(file_path: Path) -> dict:
+def read_yaml_file(file_path: Path) -> ConfigBox:
     try:
         with open(file_path, 'rb') as yaml_file:
             content = yaml.safe_load(yaml_file)
-            return content if content is not None else {}
+            content = content if content is not None else {}
+            return ConfigBox(content)
     except Exception as e:
         raise CustomException(e, sys)
+
+# Alias
+read_yaml = read_yaml_file
 
 
 @ensure_annotations
