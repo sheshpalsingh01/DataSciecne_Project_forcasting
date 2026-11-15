@@ -1,7 +1,7 @@
 from pathlib import Path
 from src.forcastingproject.constants import CONFIG_FILE_PATH, PARAMS_FILE_PATH, SCHEMA_FILE_PATH
 from src.forcastingproject.utils.common import read_yaml_file, create_directories
-from src.forcastingproject.entity import DataIngestionConfig, DataValidationConfig
+from src.forcastingproject.entity import DataIngestionConfig, DataValidationConfig, DataTransformationConfig
 
 class ConfigurationManager:
     def __init__(
@@ -40,6 +40,17 @@ class ConfigurationManager:
             all_schema=schema
         )
         return data_validation_config
+    
+    def get_data_transformation_config(self) -> DataTransformationConfig:
+        config = self.config.data_transformation
+        create_directories([config.root_dir, config.reports_dir])
+
+        data_transformation_config = DataTransformationConfig(
+            root_dir=Path(config.root_dir),
+            data_path=Path(config.data_path),
+            reports_dir=Path(config.reports_dir),
+        )
+        return data_transformation_config
 
 # Alias for backward compatibility
 ComfigurationManager = ConfigurationManager
