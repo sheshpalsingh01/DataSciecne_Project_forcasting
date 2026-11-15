@@ -9,6 +9,7 @@ class DataIngestionConfig:
 
 @dataclass(frozen=True)
 class DataValidationConfig:
-    root_dir : Path
+    root_dir: Path
     data_file_dir: Path
     status_file: Path
+    all_schema: dict

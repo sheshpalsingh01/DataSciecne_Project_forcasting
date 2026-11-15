@@ -3,5 +3,13 @@ numpy
 matplotlib
 seaborn 
 scikit-learn
+pyyaml
+joblib
+mlflow
+dvc
+dagshub
+python-box
+ensure
+Flask
 
 # -e .
