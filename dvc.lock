@@ -1,0 +1,201 @@
+schema: '2.0'
+stages:
+  data_ingestion:
+    cmd: python -m src.forcastingproject.pipeline.data_ingestion_pipeline
+    deps:
+    - path: config/config.yaml
+      hash: md5
+      md5: d2b1e1214956614b3c12a763879605ea
+      size: 927
+    - path: data/store.csv
+      hash: md5
+      md5: 30c9ccb5af66c21f65e7d1da967e6251
+      size: 45010
+    - path: data/train.csv
+      hash: md5
+      md5: d47aedd9e2d580e06a6ef7ce1732e8b6
+      size: 38057952
+    - path: src/forcastingproject/components/data_ingestion.py
+      hash: md5
+      md5: ed425865266c25e29645fc24c9926b8c
+      size: 2753
+    - path: src/forcastingproject/config/configuration.py
+      hash: md5
+      md5: c15919109cae6a4497e3ccdf88f5ef4b
+      size: 3668
+    - path: src/forcastingproject/entity/__init__.py
+      hash: md5
+      md5: de12027635ca197993918ed751b31960
+      size: 922
+    - path: src/forcastingproject/pipeline/data_ingestion_pipeline.py
+      hash: md5
+      md5: 28ebd6803ff8404acae72deedf91dbf4
+      size: 1382
+    outs:
+    - path: artifacts/data_ingestion
+      hash: md5
+      md5: c1bc1701f0118d2d4a6f3f547d1158e5.dir
+      size: 110429605
+      nfiles: 3
+  data_validation:
+    cmd: python -m src.forcastingproject.pipeline.data_validation_pipeline
+    deps:
+    - path: artifacts/data_ingestion/raw.csv
+      hash: md5
+      md5: b2d89c7fb2deeee59b5751beba7a990c
+      size: 72326643
+    - path: config/config.yaml
+      hash: md5
+      md5: d2b1e1214956614b3c12a763879605ea
+      size: 927
+    - path: schema.yaml
+      hash: md5
+      md5: d58922998113788d3ac74e81822a374f
+      size: 437
+    - path: src/forcastingproject/components/data_validation.py
+      hash: md5
+      md5: cbf2277316e76643875ccd5ae1c98c6d
+      size: 2253
+    - path: src/forcastingproject/config/configuration.py
+      hash: md5
+      md5: c15919109cae6a4497e3ccdf88f5ef4b
+      size: 3668
+    - path: src/forcastingproject/entity/__init__.py
+      hash: md5
+      md5: de12027635ca197993918ed751b31960
+      size: 922
+    - path: src/forcastingproject/pipeline/data_validation_pipeline.py
+      hash: md5
+      md5: d7bdceb43ac5e0f3649191b7ddae508a
+      size: 2065
+    outs:
+    - path: artifacts/data_validation/status.txt
+      hash: md5
+      md5: 9da79d7ab210aed55fd0e03b11706189
+      size: 24
+  data_transformation:
+    cmd: python -m src.forcastingproject.pipeline.data_transformation_pipeline
+    deps:
+    - path: artifacts/data_ingestion/raw.csv
+      hash: md5
+      md5: b2d89c7fb2deeee59b5751beba7a990c
+      size: 72326643
+    - path: artifacts/data_validation/status.txt
+      hash: md5
+      md5: 9da79d7ab210aed55fd0e03b11706189
+      size: 24
+    - path: config/config.yaml
+      hash: md5
+      md5: d2b1e1214956614b3c12a763879605ea
+      size: 927
+    - path: src/forcastingproject/components/data_transformation.py
+      hash: md5
+      md5: d385ce17a822ab78aae43d5209b21336
+      size: 7254
+    - path: src/forcastingproject/config/configuration.py
+      hash: md5
+      md5: c15919109cae6a4497e3ccdf88f5ef4b
+      size: 3668
+    - path: src/forcastingproject/entity/__init__.py
+      hash: md5
+      md5: de12027635ca197993918ed751b31960
+      size: 922
+    - path: src/forcastingproject/pipeline/data_transformation_pipeline.py
+      hash: md5
+      md5: 720f2f3c9a8e774a599b572289e663e3
+      size: 1862
+    outs:
+    - path: artifacts/data_transformation
+      hash: md5
+      md5: b609f90701ebd5e8e9b733a7886b5f17.dir
+      size: 140680338
+      nfiles: 3
+    - path: artifacts/reports
+      hash: md5
+      md5: 57e23445c08356e8f43e4d52afc7099b.dir
+      size: 206175
+      nfiles: 4
+  model_training:
+    cmd: python -m src.forcastingproject.pipeline.model_trainer_pipeline
+    deps:
+    - path: artifacts/data_transformation/train.csv
+      hash: md5
+      md5: d96d48da26493653019d586b4e018904
+      size: 112541491
+    - path: config/config.yaml
+      hash: md5
+      md5: d2b1e1214956614b3c12a763879605ea
+      size: 927
+    - path: schema.yaml
+      hash: md5
+      md5: d58922998113788d3ac74e81822a374f
+      size: 437
+    - path: src/forcastingproject/components/model_trainer.py
+      hash: md5
+      md5: f6e166fb523755dfc6b9b15d6961c46d
+      size: 1831
+    - path: src/forcastingproject/config/configuration.py
+      hash: md5
+      md5: c15919109cae6a4497e3ccdf88f5ef4b
+      size: 3668
+    - path: src/forcastingproject/entity/__init__.py
+      hash: md5
+      md5: de12027635ca197993918ed751b31960
+      size: 922
+    - path: src/forcastingproject/pipeline/model_trainer_pipeline.py
+      hash: md5
+      md5: a6973ef8e6677bad257a32177fa162d9
+      size: 1136
+    params:
+      params.yaml:
+        model_trainer:
+          n_estimators: 30
+          max_depth: 16
+          random_state: 42
+          n_jobs: 2
+    outs:
+    - path: artifacts/model_trainer/model.joblib
+      hash: md5
+      md5: c2ba2295a9cce7fa8c1115ac3d52c818
+      size: 54513153
+  model_evaluation:
+    cmd: python -m src.forcastingproject.pipeline.model_evaluation_pipeline
+      --local-only
+    deps:
+    - path: artifacts/data_transformation/test.csv
+      hash: md5
+      md5: b2664825d45dc9f988ef4451a2db3319
+      size: 28134475
+    - path: artifacts/model_trainer/model.joblib
+      hash: md5
+      md5: c2ba2295a9cce7fa8c1115ac3d52c818
+      size: 54513153
+    - path: config/config.yaml
+      hash: md5
+      md5: d2b1e1214956614b3c12a763879605ea
+      size: 927
+    - path: schema.yaml
+      hash: md5
+      md5: d58922998113788d3ac74e81822a374f
+      size: 437
+    - path: src/forcastingproject/components/model_evaluation.py
+      hash: md5
+      md5: cc6ad5cf06d6f0102a879cb6daa401e0
+      size: 2175
+    - path: src/forcastingproject/config/configuration.py
+      hash: md5
+      md5: c15919109cae6a4497e3ccdf88f5ef4b
+      size: 3668
+    - path: src/forcastingproject/entity/__init__.py
+      hash: md5
+      md5: de12027635ca197993918ed751b31960
+      size: 922
+    - path: src/forcastingproject/pipeline/model_evaluation_pipeline.py
+      hash: md5
+      md5: f3034f42cdd90163a745abf3de4ab78f
+      size: 1496
+    outs:
+    - path: artifacts/model_evaluation/metrics.json
+      hash: md5
+      md5: b5f143454e8ac1e35e0563718bbc35de
+      size: 80

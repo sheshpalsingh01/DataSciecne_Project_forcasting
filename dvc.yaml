@@ -1,0 +1,69 @@
+stages:
+  data_ingestion:
+    cmd: python -m src.forcastingproject.pipeline.data_ingestion_pipeline
+    deps:
+      - data/train.csv
+      - data/store.csv
+      - config/config.yaml
+      - src/forcastingproject/config/configuration.py
+      - src/forcastingproject/entity/__init__.py
+      - src/forcastingproject/components/data_ingestion.py
+      - src/forcastingproject/pipeline/data_ingestion_pipeline.py
+    outs:
+      - artifacts/data_ingestion
+
+  data_validation:
+    cmd: python -m src.forcastingproject.pipeline.data_validation_pipeline
+    deps:
+      - artifacts/data_ingestion/raw.csv
+      - config/config.yaml
+      - schema.yaml
+      - src/forcastingproject/config/configuration.py
+      - src/forcastingproject/entity/__init__.py
+      - src/forcastingproject/components/data_validation.py
+      - src/forcastingproject/pipeline/data_validation_pipeline.py
+    outs:
+      - artifacts/data_validation/status.txt
+
+  data_transformation:
+    cmd: python -m src.forcastingproject.pipeline.data_transformation_pipeline
+    deps:
+      - artifacts/data_ingestion/raw.csv
+      - artifacts/data_validation/status.txt
+      - config/config.yaml
+      - src/forcastingproject/config/configuration.py
+      - src/forcastingproject/entity/__init__.py
+      - src/forcastingproject/components/data_transformation.py
+      - src/forcastingproject/pipeline/data_transformation_pipeline.py
+    outs:
+      - artifacts/data_transformation
+      - artifacts/reports
+
+  model_training:
+    cmd: python -m src.forcastingproject.pipeline.model_trainer_pipeline
+    deps:
+      - artifacts/data_transformation/train.csv
+      - config/config.yaml
+      - schema.yaml
+      - src/forcastingproject/config/configuration.py
+      - src/forcastingproject/entity/__init__.py
+      - src/forcastingproject/components/model_trainer.py
+      - src/forcastingproject/pipeline/model_trainer_pipeline.py
+    params:
+      - model_trainer
+    outs:
+      - artifacts/model_trainer/model.joblib
+
+  model_evaluation:
+    cmd: python -m src.forcastingproject.pipeline.model_evaluation_pipeline --local-only
+    deps:
+      - artifacts/data_transformation/test.csv
+      - artifacts/model_trainer/model.joblib
+      - config/config.yaml
+      - schema.yaml
+      - src/forcastingproject/config/configuration.py
+      - src/forcastingproject/entity/__init__.py
+      - src/forcastingproject/components/model_evaluation.py
+      - src/forcastingproject/pipeline/model_evaluation_pipeline.py
+    metrics:
+      - artifacts/model_evaluation/metrics.json

@@ -1,0 +1,7 @@
+[core]
+    remote = dagshub
+['remote "dagshub"']
+    url = s3://dvc
+    endpointurl = https://dagshub.com/sheshpalsingh2024/DataSciecne_Project_forcasting.s3
+['remote "origin"']
+    url = https://dagshub.com/sheshpalsingh2024/DataSciecne_Project_forcasting.dvc
