@@ -5,7 +5,7 @@ seaborn
 scikit-learn
 pyyaml
 joblib
-mlflow
+mlflow>=3
 dvc
 dagshub
 python-box

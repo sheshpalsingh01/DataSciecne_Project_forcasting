@@ -31,3 +31,16 @@ class ModelTrainerConfig:
     max_depth: int | None
     random_state: int
     n_jobs: int
+
+
+@dataclass(frozen=True)
+class ModelEvaluationConfig:
+    root_dir: Path
+    test_data_path: Path
+    model_path: Path
+    metrics_path: Path
+    target_column: str
+    tracking_uri: str
+    experiment_name: str
+    model_params: dict
+    registered_model_name: str

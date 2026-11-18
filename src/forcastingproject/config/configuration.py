@@ -1,8 +1,10 @@
+import os
 from pathlib import Path
 from src.forcastingproject.constants import CONFIG_FILE_PATH, PARAMS_FILE_PATH, SCHEMA_FILE_PATH
 from src.forcastingproject.utils.common import read_yaml_file, create_directories
 from src.forcastingproject.entity import (
     DataIngestionConfig,
+    ModelEvaluationConfig,
     DataValidationConfig,
     DataTransformationConfig,
     ModelTrainerConfig,
@@ -72,6 +74,24 @@ class ConfigurationManager:
             random_state=params.random_state,
             n_jobs=params.n_jobs,
         )
+
+
+    def get_model_evaluation_config(self) -> ModelEvaluationConfig:
+        config = self.config.model_evaluation
+        create_directories([config.root_dir])
+
+        model_evaluation_config = ModelEvaluationConfig(
+            root_dir=Path(config.root_dir),
+            test_data_path=Path(config.test_data_path),
+            model_path=Path(config.model_path),
+            metrics_path=Path(config.metrics_path),
+            target_column=self.schema.TARGET_COLUMN.name,
+            tracking_uri=os.environ.get("MLFLOW_TRACKING_URI") or config.tracking_uri,
+            experiment_name=config.experiment_name,
+            model_params=dict(self.params.model_trainer),
+            registered_model_name=config.registered_model_name,
+        )
+        return model_evaluation_config
 
 
 # Alias for backward compatibility
