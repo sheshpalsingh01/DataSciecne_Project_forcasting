@@ -1,0 +1,179 @@
+:root {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  color: #172c25;
+  background: #f4f6f0;
+  color-scheme: light;
+  line-height: 1.5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.page {
+  width: min(1080px, 100% - 3rem);
+  margin: 0 auto;
+  padding: 3.75rem 0;
+}
+
+.intro {
+  margin-bottom: 2rem;
+}
+
+h1, h2, p {
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(2.1rem, 5vw, 3.6rem);
+  letter-spacing: -0.055em;
+  line-height: 1.1;
+}
+
+.intro p {
+  margin-top: 0.75rem;
+  color: #485e54;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 1.25rem;
+}
+
+.panel, .result {
+  padding: clamp(1rem, 3vw, 1.7rem);
+  border-radius: 1rem;
+}
+
+.panel {
+  background: #fff;
+  border: 1px solid #d9e2d9;
+}
+
+h2 {
+  font-size: 1.2rem;
+  line-height: 1.3;
+  margin-bottom: 1rem;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  min-width: 0;
+}
+
+input, select, button {
+  font: inherit;
+}
+
+input, select {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.6rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid #aebfb4;
+  border-radius: 0.4rem;
+  background: #fff;
+  color: inherit;
+}
+
+details {
+  margin: 1.35rem 0;
+  padding: 0.85rem 0;
+  border-block: 1px solid #d9e2d9;
+}
+
+summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+summary span {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: #485e54;
+  margin-left: 0.3rem;
+}
+
+details .fields {
+  margin-top: 1rem;
+}
+
+button {
+  border: 0;
+  border-radius: 0.45rem;
+  background: #196047;
+  color: white;
+  font-weight: 700;
+  padding: 0.65rem 1.1rem;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #114733;
+}
+
+:focus-visible {
+  outline: 3px solid #237456;
+  outline-offset: 3px;
+}
+
+.result {
+  background: #173b2d;
+  color: #f5faf4;
+}
+
+.result p {
+  color: #d9eee0;
+}
+
+.result .amount {
+  margin-bottom: 0.25rem;
+  color: #fff;
+  font-size: clamp(1.9rem, 4vw, 3.3rem);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.error {
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 1rem;
+  border-radius: 0.4rem;
+  background: #fceee9;
+  color: #7a2114;
+}
+
+@media (max-width: 760px) {
+  .page {
+    width: min(100% - 2rem, 560px);
+    padding: 2rem 0;
+  }
+
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .has-forecast .result {
+    order: -1;
+  }
+}
+
+@media (max-width: 420px) {
+  .fields {
+    grid-template-columns: 1fr;
+  }
+}

@@ -45,3 +45,15 @@ python -m src.forcastingproject.pipeline.prediction_pipeline \
 ```
 
 The command prints one predicted sales value. Provide competition and recurring promotion details when known. The optional fields are `CompetitionDistance`, `CompetitionOpenSinceMonth`, `CompetitionOpenSinceYear`, `Promo2SinceWeek`, `Promo2SinceYear`, and `PromoInterval`. The pipeline derives calendar features from `Date` and applies the fitted preprocessor. In Python, create a `PredictionPipeline()` once and pass a dictionary or a `CustomData` instance to its `predict()` method for each request.
+
+## Run the forecast web app
+
+With the model artifacts available, run `flask --app app run` from the project directory and open `http://127.0.0.1:5000/`. The web form and JSON API accept the same fields as Stage 07.
+
+```bash
+curl http://127.0.0.1:5000/api/predict \
+  -H 'Content-Type: application/json' \
+  -d '{"Store":1,"Date":"2015-07-31","Open":1,"Promo":1,"StateHoliday":"0","SchoolHoliday":1,"StoreType":"c","Assortment":"a","Promo2":0}'
+```
+
+A successful response contains `sales` as a number. Invalid requests return HTTP 400 with an error message. Missing model artifacts return HTTP 503.
