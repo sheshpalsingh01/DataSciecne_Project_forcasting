@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Store sales forecast</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='forecast.css') }}">
+</head>
+<body>
+  {% macro number_field(name, label, minimum=0, maximum=none, step=1, required=false) %}
+    <label for="{{ name }}">
+      <span>{{ label }}</span>
+      <input id="{{ name }}" name="{{ name }}" type="number" value="{{ values.get(name, '') }}"
+             min="{{ minimum }}" {% if maximum is not none %}max="{{ maximum }}"{% endif %}
+             step="{{ step }}" {% if required %}required{% endif %}>
+    </label>
+  {% endmacro %}
+  {% macro choice_field(name, label, options) %}
+    <label for="{{ name }}">
+      <span>{{ label }}</span>
+      <select id="{{ name }}" name="{{ name }}" required>
+        <option value="" disabled {% if name not in values %}selected{% endif %}>Select</option>
+        {% for value, text in options %}
+          <option value="{{ value }}" {% if values.get(name) == value %}selected{% endif %}>{{ text }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  {% endmacro %}
+
+  <main class="page">
+    <header class="intro">
+      <h1>Store sales forecast</h1>
+      <p>Estimate daily sales for a store using its schedule, promotions, and local competition.</p>
+    </header>
+
+    <div class="workspace{% if sales is defined %} has-forecast{% endif %}">
+      <form class="panel" method="post" action="{{ url_for('predict') }}">
+        <h2>Store and trading day</h2>
+        {% if error %}
+          <p class="error" role="alert">{{ error }}</p>
+        {% endif %}
+        <div class="fields">
+          {{ number_field('Store', 'Store ID', minimum=1, required=true) }}
+          <label for="Date">
+            <span>Forecast date</span>
+            <input id="Date" name="Date" type="date" value="{{ values.get('Date', '') }}" required>
+          </label>
+          {{ choice_field('StoreType', 'Store type', [('a', 'A'), ('b', 'B'), ('c', 'C'), ('d', 'D')]) }}
+          {{ choice_field('Assortment', 'Assortment', [('a', 'A · Basic'), ('b', 'B · Extra'), ('c', 'C · Extended')]) }}
+          {{ choice_field('Open', 'Store open', [('1', 'Open'), ('0', 'Closed')]) }}
+          {{ choice_field('Promo', 'Promotion on date', [('1', 'Yes'), ('0', 'No')]) }}
+          {{ choice_field('StateHoliday', 'State holiday', [('0', 'None'), ('a', 'Public holiday'), ('b', 'Easter holiday'), ('c', 'Christmas')]) }}
+          {{ choice_field('SchoolHoliday', 'School holiday', [('1', 'Yes'), ('0', 'No')]) }}
+          {{ choice_field('Promo2', 'Recurring promotion', [('1', 'Yes'), ('0', 'No')]) }}
+        </div>
+
+        <details {% if values.get('CompetitionDistance') or values.get('CompetitionOpenSinceMonth') or values.get('CompetitionOpenSinceYear') or values.get('Promo2SinceWeek') or values.get('Promo2SinceYear') or values.get('PromoInterval') %}open{% endif %}>
+          <summary>Competition and promotion details <span>Optional</span></summary>
+          <div class="fields">
+            {{ number_field('CompetitionDistance', 'Competitor distance (m)', step='any') }}
+            {{ number_field('CompetitionOpenSinceMonth', 'Competitor opening month', maximum=12) }}
+            {{ number_field('CompetitionOpenSinceYear', 'Competitor opening year') }}
+            {{ number_field('Promo2SinceWeek', 'Recurring promotion start week', maximum=53) }}
+            {{ number_field('Promo2SinceYear', 'Recurring promotion start year') }}
+            <label for="PromoInterval">
+              <span>Recurring promotion months</span>
+              <select id="PromoInterval" name="PromoInterval">
+                <option value="">None or unknown</option>
+                {% for interval in ['Jan,Apr,Jul,Oct', 'Feb,May,Aug,Nov', 'Mar,Jun,Sept,Dec'] %}
+                  <option value="{{ interval }}" {% if values.get('PromoInterval') == interval %}selected{% endif %}>{{ interval.replace(',', ', ') }}</option>
+                {% endfor %}
+              </select>
+            </label>
+          </div>
+        </details>
+        <button type="submit">Predict sales</button>
+      </form>
+
+      <section class="result" aria-labelledby="result-title">
+        <h2 id="result-title">Predicted daily sales</h2>
+        {% if sales is defined %}
+          <p class="amount">{{ '{:,.2f}'.format(sales) }}</p>
+          <p>Store {{ values.Store }} · <time datetime="{{ values.Date }}">{{ values.Date }}</time></p>
+        {% else %}
+          <p>Submit the store details to see a forecast here.</p>
+        {% endif %}
+      </section>
+    </div>
+  </main>
+</body>
+</html>
