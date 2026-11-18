@@ -1,0 +1,88 @@
+name: Forecast container CI/CD
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: Deploy the tested image to the production EC2 runner
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.image.outputs.ref }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set image reference
+        id: image
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}:$GITHUB_SHA"
+          echo "ref=$image" >> "$GITHUB_OUTPUT"
+
+      - name: Build serving image
+        env:
+          IMAGE: ${{ steps.image.outputs.ref }}
+        run: docker build --tag "$IMAGE" .
+
+      - name: Run web app tests inside the image
+        env:
+          IMAGE: ${{ steps.image.outputs.ref }}
+        run: |
+          docker run --rm \
+            --mount "type=bind,src=$PWD/tests,dst=/app/tests,readonly" \
+            "$IMAGE" python -m unittest discover -s tests -v
+
+      - name: Publish the tested image
+        if: github.ref_name == github.event.repository.default_branch && github.event_name != 'pull_request'
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE: ${{ steps.image.outputs.ref }}
+        run: |
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker push "$IMAGE"
+
+  deploy:
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy && github.ref_name == github.event.repository.default_branch
+    needs: build
+    runs-on: [self-hosted, linux, x64, forecast-ec2]
+    environment: production
+    concurrency: forecast-production
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Pull and deploy the tested image
+        env:
+          DOCKER_CONFIG: ${{ runner.temp }}/forecast-docker-config
+          FORECAST_IMAGE: ${{ needs.build.outputs.image }}
+          FORECAST_ARTIFACTS_DIR: ${{ vars.FORECAST_ARTIFACTS_DIR }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          case "$FORECAST_ARTIFACTS_DIR" in
+            /*) ;;
+            *) echo 'Set FORECAST_ARTIFACTS_DIR to an absolute directory on the EC2 host.'; exit 1 ;;
+          esac
+          test -f "$FORECAST_ARTIFACTS_DIR/data_transformation/preprocessor.joblib"
+          test -f "$FORECAST_ARTIFACTS_DIR/model_trainer/model.joblib"
+          mkdir -p "$DOCKER_CONFIG"
+          trap 'docker logout ghcr.io' EXIT
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker compose -p sales-forecast pull forecast
+          docker compose -p sales-forecast up --detach --no-build --wait --wait-timeout 90
