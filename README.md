@@ -1,76 +1,288 @@
-# DataSciecne_Project_forcasting
+# 📈 Retail Sales Forecasting · End-to-End MLOps
 
-Run `python main.py` from the project directory to ingest, validate, and transform the sales data, train the Random Forest, and evaluate it with MLflow tracking on DagsHub. Set the tracking credentials below before running the full pipeline.
+A daily sales forecasting project that trains a Random Forest on historical store sales, promotion schedules, holidays, and competition data. The repository covers the workflow from notebook experiments to reproducible DVC pipelines, MLflow experiment tracking, and a Flask app with a prediction API.
 
-## Model evaluation
+**Render demo** · [Open the forecast app](https://datasciecne-project-forcasting.onrender.com/)
 
-With the trained model and transformed test data in `artifacts/`, run Stage 05 by itself.
+**Demo status** · The form loads. The last prediction check returned HTTP 503 because the model artifacts were missing.
 
-```bash
-python -m src.forcastingproject.pipeline.model_evaluation_pipeline --local-only
+---
+
+## 📑 Table of Contents
+
+- [System Architecture](#-system-architecture)
+- [ML Pipeline Workflow](#-ml-pipeline-workflow)
+- [Project Directory Structure](#-project-directory-structure)
+- [Tech Stack](#-tech-stack)
+- [Getting Started](#-getting-started)
+- [Usage & Execution](#-usage--execution)
+- [API Endpoints](#-api-endpoints)
+- [Experiment Tracking & Model Registry](#-experiment-tracking--model-registry)
+- [Deploy on Render](#-deploy-on-render)
+- [Software Engineering Standards](#-software-engineering-standards)
+- [License](#-license)
+- [Author](#-author)
+
+---
+
+## 🏛 System Architecture
+
+Training and inference share a fitted preprocessor and model. Pipeline settings, schema checks, and model parameters live in YAML, and DVC records the data and artifact versions used in each run.
+
+```mermaid
+flowchart TD
+    subgraph Configuration
+        Config["config.yaml · schema.yaml · params.yaml"] --> Manager["Configuration manager"]
+    end
+
+    subgraph Training["Training pipeline · DVC"]
+        CSV["Versioned sales and store CSVs"] --> Ingest["01 · Ingest"]
+        Manager --> Ingest
+        Ingest --> Validate["02 · Validate"]
+        Validate --> Transform["03 · Transform and split"]
+        Transform --> Train["04 · Train Random Forest"]
+        Train --> Evaluate["05 · Evaluate"]
+        Transform -->|"Test split"| Evaluate
+    end
+
+    subgraph Artifacts["Artifacts and tracking"]
+        Transform --> Preprocessor["preprocessor.joblib"]
+        Train --> Model["model.joblib"]
+        Evaluate --> Metrics["metrics.json"]
+        Evaluate -.-> Registry["MLflow tracking and registry on DagsHub"]
+        Cache["DagsHub DVC storage"] -.-> CSV
+        Preprocessor -.-> Cache
+        Model -.-> Cache
+    end
+
+    subgraph Serving
+        Preprocessor --> Predict["PredictionPipeline"]
+        Model --> Predict
+        Predict --> Flask["Flask form and JSON API"]
+        Flask --> Render["Gunicorn container on Render"]
+    end
 ```
 
-The evaluation writes RMSE, MAE, and R² to `artifacts/model_evaluation/metrics.json`.
+DVC tracks the source dataset and generated artifacts and runs the first five stages in dependency order. DagsHub stores the DVC cache. MLflow records selected evaluation runs and registered model versions.
 
-For DagsHub tracking, set `MLFLOW_TRACKING_USERNAME` to your DagsHub username and `MLFLOW_TRACKING_PASSWORD` to an access token with write access to the repository. Use the same Python environment for training and evaluation.
+---
 
-```bash
-python -m src.forcastingproject.pipeline.model_evaluation_pipeline
+## 🔄 ML Pipeline Workflow
+
+The project moves each ML stage from research to a runnable module in seven steps:
+
+1. Prototype the stage in a research notebook and run it on real data.
+2. Declare artifact paths in `config/config.yaml`, schema fields in `schema.yaml`, and tunable values in `params.yaml` as needed.
+3. Define the stage's configuration dataclass.
+4. Load and build the configuration through `ConfigurationManager`.
+5. Move the verified logic into a component.
+6. Connect the component to a pipeline runner.
+7. Run the stage through its entry point and inspect the outputs and logs.
+
+| Stage | Work | Output |
+| --- | --- | --- |
+| 01 · Ingestion | Join historical sales with store metadata | `artifacts/data_ingestion/raw.csv` |
+| 02 · Validation | Check the ingested columns against `schema.yaml` | `artifacts/data_validation/status.txt` |
+| 03 · Transformation | Derive calendar features, prepare missing and categorical values, and split the data | `train.csv`, `test.csv`, `preprocessor.joblib` |
+| 04 · Training | Fit the Random Forest using `params.yaml` | `artifacts/model_trainer/model.joblib` |
+| 05 · Evaluation | Calculate RMSE, MAE, and R² and optionally track a run in MLflow | `artifacts/model_evaluation/metrics.json` |
+| 06 · Orchestration | Reproduce the training workflow and sync its cache | `dvc.yaml`, `dvc.lock`, DagsHub storage |
+| 07 · Inference | Validate a single store-and-date input and run the saved model | Predicted daily sales |
+| 08 · Web app | Serve predictions in a form and a JSON API | Flask application |
+| 09 · Container and CI | Package the serving app and test the image | Docker image and GitHub Actions workflow |
+
+---
+
+## 📁 Project Directory Structure
+
+```text
+.
+├── .github/workflows/main.yaml      # Container build, tests, and publishing
+├── config/config.yaml               # Artifact paths and tracking settings
+├── research/
+│   ├── 01_data_ingestion.ipynb
+│   ├── 02_data_validation.ipynb
+│   ├── 03_data_transformation.ipynb
+│   ├── 04_model_training.ipynb
+│   ├── 05_model_evaluation.ipynb
+│   └── 07_prediction_pipeline.ipynb
+├── src/forcastingproject/
+│   ├── components/                 # Data and model operations
+│   ├── config/                      # Configuration manager
+│   ├── entity/                      # Configuration dataclasses
+│   ├── pipeline/                    # Stage runners and prediction pipeline
+│   └── utils/                       # YAML, JSON, and file helpers
+├── static/                          # Web stylesheet
+├── templates/                       # Flask HTML template
+├── tests/                           # Flask route and readiness tests
+├── app.py                           # Flask entry point
+├── main.py                          # Training and tracked evaluation entry point
+├── data.dvc                         # Source dataset pointer
+├── dvc.yaml                         # Reproducible pipeline definition
+├── dvc.lock                         # Recorded dependency and output versions
+├── params.yaml                      # Model settings
+├── schema.yaml                      # Input schema
+├── requirements.txt                 # Training and development dependencies
+├── requirements-serving.txt         # Pinned serving dependencies
+├── Dockerfile                       # Gunicorn serving image
+└── docker-compose.yaml              # Local service and artifact mounts
 ```
 
-The command uses the tracking URI in `config/config.yaml`. Set `MLFLOW_TRACKING_URI` to use a different tracking server. The run logs the fitted model's parameters, metrics, and model signature and registers the model as `sales-forecasting`.
+---
 
-## DVC pipeline and storage
+## 🛠 Tech Stack
 
-Run the pipeline from the project directory with the environment from `requirements.txt` active. On a fresh checkout, configure DagsHub credentials and run `dvc pull` first to retrieve the source data and cached artifacts.
+| Layer | Tools |
+| --- | --- |
+| Data and modeling | Python 3.14, pandas, NumPy, scikit-learn, joblib |
+| Versioning and orchestration | Git, DVC, DagsHub remote storage |
+| Experiment tracking | MLflow and DagsHub Model Registry |
+| Configuration | PyYAML, ConfigBox, frozen dataclasses |
+| Serving | Flask, Jinja2, Gunicorn, Docker Compose |
+| Automation and hosting | GitHub Actions, GitHub Container Registry, Render |
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+Use Python 3.14 for the provided artifacts. The serving environment pins scikit-learn and other model-loading dependencies in `requirements-serving.txt`. Install Docker and Compose to use the container.
+
+### Installation
 
 ```bash
+git clone --branch feature/container-ci-cd --single-branch \
+  https://github.com/sheshpalsingh01/DataSciecne_Project_forcasting.git
+cd DataSciecne_Project_forcasting
+
+python3.14 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt -r requirements-serving.txt
+```
+
+### Environment configuration
+
+Configure the `dagshub` DVC remote credentials locally using `dvc remote modify --local` or the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables for DagsHub's S3-compatible endpoint. Keep local credentials out of Git.
+
+For tracked runs, export `MLFLOW_TRACKING_USERNAME` and `MLFLOW_TRACKING_PASSWORD` in the shell that launches the pipeline. Use a DagsHub token with write access for the password. `MLFLOW_TRACKING_URI` is optional because `config/config.yaml` sets the project URI.
+
+---
+
+## 💻 Usage & Execution
+
+### 1. Reproduce the ML pipeline
+
+```bash
+dvc pull
 dvc dag
 dvc repro
 dvc metrics show
-dvc push
 ```
 
-DVC tracks the source dataset through `data.dvc` and records the five pipeline stages in `dvc.lock`. Editing the `model_trainer` settings in `params.yaml` starts reproduction at model training. DVC runs evaluation with `--local-only` so cache operations do not create MLflow runs. Use the standalone tracking command above to publish a run.
+A second reproduction skips unchanged stages. Changing the trainer settings in `params.yaml` starts reproduction at model training. Use `dvc push` to sync updated artifacts when you have write access.
 
-The default remote is the project's DagsHub DVC storage. Configure `access_key_id` and `secret_access_key` for the `dagshub` remote in the Git-ignored `.dvc/config.local` using `dvc remote modify --local` or set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` in your shell environment. Keep credentials in local configuration.
+For a full run with MLflow tracking after fetching the data, use `python main.py`. DVC writes local evaluation metrics during reproduction. It leaves remote experiment logging to the tracked entry points.
 
-## Predict sales for one store
-
-Use the preprocessor and model artifacts produced by Stages 03 and 04. If they are missing, fetch them with `dvc pull` or build them with `dvc repro model_training`.
+### 2. Launch the web application
 
 ```bash
-python -m src.forcastingproject.pipeline.prediction_pipeline \
-  '{"Store":1,"Date":"2015-07-31","Open":1,"Promo":1,"StateHoliday":"0","SchoolHoliday":1,"StoreType":"c","Assortment":"a","Promo2":0}'
+docker compose up --build --wait
+curl -fsS http://127.0.0.1:5000/health
 ```
 
-The command prints one predicted sales value. Provide competition and recurring promotion details when known. The optional fields are `CompetitionDistance`, `CompetitionOpenSinceMonth`, `CompetitionOpenSinceYear`, `Promo2SinceWeek`, `Promo2SinceYear`, and `PromoInterval`. The pipeline derives calendar features from `Date` and applies the fitted preprocessor. In Python, create a `PredictionPipeline()` once and pass a dictionary or a `CustomData` instance to its `predict()` method for each request.
+Open `http://127.0.0.1:5000/` and submit a store and date. Compose mounts the model and preprocessor read-only. Stop the service with `docker compose down`. For development without Docker, run `flask --app app run` with the same artifacts in place.
 
-## Run the forecast web app
+---
 
-With the model artifacts available, run `flask --app app run` from the project directory and open `http://127.0.0.1:5000/`. The web form and JSON API accept the same fields as Stage 07.
+## 🌐 API Endpoints
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/` | Open the forecast form |
+| POST | `/predict` | Submit the HTML form |
+| POST | `/api/predict` | Predict sales from a JSON payload |
+| GET | `/health` | Check whether both inference artifacts load |
+
+### Prediction input
+
+| Field | Meaning |
+| --- | --- |
+| `Store`, `Date` | Positive store ID and forecast date in ISO format |
+| `StoreType`, `Assortment` | Store and merchandise categories |
+| `Open`, `Promo`, `SchoolHoliday`, `Promo2` | Flags encoded as `0` or `1` |
+| `StateHoliday` | `0` for none or `a`, `b`, `c` for the training dataset's holiday categories |
 
 ```bash
-curl http://127.0.0.1:5000/api/predict \
+curl -fsS http://127.0.0.1:5000/api/predict \
   -H 'Content-Type: application/json' \
   -d '{"Store":1,"Date":"2015-07-31","Open":1,"Promo":1,"StateHoliday":"0","SchoolHoliday":1,"StoreType":"c","Assortment":"a","Promo2":0}'
 ```
 
-A successful response contains `sales` as a number. Invalid requests return HTTP 400 with an error message. Missing model artifacts return HTTP 503.
+With the saved baseline artifacts, the response contains a numeric `sales` value of approximately `7752.08`. Invalid payloads return HTTP 400. Missing inference artifacts return HTTP 503.
 
-## Container and CI/CD
+Optional inputs are `CompetitionDistance`, `CompetitionOpenSinceMonth`, `CompetitionOpenSinceYear`, `Promo2SinceWeek`, `Promo2SinceYear`, and `PromoInterval`. The same payload also works with `python -m src.forcastingproject.pipeline.prediction_pipeline '<JSON payload>'`.
 
-The serving image uses Gunicorn and the Python 3.14 and scikit-learn 1.9.1 versions used to produce the DVC model. Its dependencies are in `requirements-serving.txt`. Compose mounts the trained model and preprocessor as read-only files.
+---
 
-From the project directory, retrieve the artifacts if needed and start the app:
+## 📊 Experiment Tracking & Model Registry
+
+The baseline Random Forest uses 30 trees and a maximum depth of 16. These scores are from the project's random 80/20 holdout of historical observations.
+
+| Metric | Value |
+| --- | ---: |
+| RMSE | 1,434.79 |
+| MAE | 925.94 |
+| R² | 0.8608 |
 
 ```bash
-dvc pull artifacts/data_transformation artifacts/model_trainer/model.joblib
-docker compose up --build --wait
+# Save local evaluation metrics
+python -m src.forcastingproject.pipeline.model_evaluation_pipeline --local-only
+
+# Log a separate MLflow run and register the model
+python -m src.forcastingproject.pipeline.model_evaluation_pipeline
 ```
 
-Open `http://127.0.0.1:5000/`. `GET /health` returns HTTP 200 when the model and preprocessor load. Run `docker compose down` to stop the app.
+The tracked run records the settings from `params.yaml`, metrics, and the model signature. MLflow registers the model as `sales-forecasting`. A verified baseline run registered version 1. [DagsHub baseline run](https://dagshub.com/sheshpalsingh2024/DataSciecne_Project_forcasting.mlflow/#/experiments/0/runs/273d1004094c40e5b79d450d63e74350)
 
-GitHub Actions builds the image and runs the Flask unit tests on pushes and pull requests. The default branch publishes passing images to GitHub Container Registry with the commit SHA as their tag.
+---
 
-To enable EC2 deployment, register an x86-64 Linux self-hosted runner with the custom label `forecast-ec2`. The runner needs Docker and Compose access. In the GitHub `production` environment, set `FORECAST_ARTIFACTS_DIR` to the absolute artifacts directory on EC2 containing the matching DVC model and preprocessor. Provision those files on the instance with `dvc pull` using its local DagsHub credentials. Run the workflow from the default branch with `deploy` enabled. It pulls the tested image, starts Compose, and waits for readiness. The service binds to the instance's loopback interface for access through a reverse proxy on the host.
+## ☁️ Deploy on Render
+
+Create a **Web Service** on the **Free** plan. With the current Docker command, set `PORT=5000` and use `/health` as the HTTP health check. [Render Docker setup](https://render.com/docs/docker) · [Health check settings](https://render.com/docs/health-checks)
+
+The stock Docker image includes the app and serving dependencies. Local Compose supplies the model files through host mounts. For Render, deploy a versioned image that bundles the two artifacts or configure startup to retrieve the exact versions from durable storage before Gunicorn starts:
+
+- `/app/artifacts/data_transformation/preprocessor.joblib`
+- `/app/artifacts/model_trainer/model.joblib`
+
+Keep credentials in Render's runtime configuration. Render Free can spin down after idle periods and discards local filesystem changes on restart. Verify readiness and a prediction on the public `onrender.com` URL after deploy and again after a cold start. [Deploy a prebuilt image](https://render.com/docs/deploying-an-image) · [Render Free limits](https://render.com/docs/free)
+
+---
+
+## 🛡 Software Engineering Standards
+
+- Frozen dataclasses define configuration objects, and the configuration manager reads YAML and resolves artifact paths.
+- Each stage has a focused component and a runner. The app uses the same prediction pipeline for form and JSON requests.
+- The fitted preprocessor travels with the model, and the Gunicorn image pins serving dependencies to match the saved artifacts.
+- Readiness checks load both inference artifacts before reporting that the service can accept forecasts.
+
+### Continuous integration
+
+GitHub Actions builds the Docker image and runs the Flask unit tests on pushes and pull requests. The workflow publishes passing default-branch builds to GitHub Container Registry with the commit SHA as the tag. Render deployment is configured separately in the Render dashboard.
+
+Run the same tests locally with:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+---
+
+## 📜 License
+
+GNU General Public License v3.0. See [LICENSE](LICENSE).
+
+## 👤 Author
+
+Sheshpal Singh · [GitHub](https://github.com/sheshpalsingh01) · [DagsHub](https://dagshub.com/sheshpalsingh2024)
