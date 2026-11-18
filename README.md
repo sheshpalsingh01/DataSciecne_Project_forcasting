@@ -249,14 +249,17 @@ The tracked run records the settings from `params.yaml`, metrics, and the model 
 
 ## ☁️ Deploy on Render
 
-Create a **Web Service** on the **Free** plan. With the current Docker command, set `PORT=5000` and use `/health` as the HTTP health check. [Render Docker setup](https://render.com/docs/docker) · [Health check settings](https://render.com/docs/health-checks)
+Create a **Docker Web Service** on the **Free** plan, use the Dockerfile's default command, and set the HTTP health check path to `/health`. The server listens on Render's `PORT`. [Render Docker setup](https://render.com/docs/docker) · [Health check settings](https://render.com/docs/health-checks)
 
-The stock Docker image includes the app and serving dependencies. Local Compose supplies the model files through host mounts. For Render, deploy a versioned image that bundles the two artifacts or configure startup to retrieve the exact versions from durable storage before Gunicorn starts:
+Set the following environment variables in the Render dashboard:
 
-- `/app/artifacts/data_transformation/preprocessor.joblib`
-- `/app/artifacts/model_trainer/model.joblib`
+| Variable | Value |
+| --- | --- |
+| `FORECAST_FETCH_ARTIFACTS` | `1` |
+| `AWS_ACCESS_KEY_ID` | DagsHub storage access key |
+| `AWS_SECRET_ACCESS_KEY` | DagsHub storage secret key |
 
-Keep credentials in Render's runtime configuration. Render Free can spin down after idle periods and discards local filesystem changes on restart. Verify readiness and a prediction on the public `onrender.com` URL after deploy and again after a cold start. [Deploy a prebuilt image](https://render.com/docs/deploying-an-image) · [Render Free limits](https://render.com/docs/free)
+At startup the container downloads just the model and preprocessor versions recorded in `dvc.lock` from DagsHub. It verifies their DVC checksums before starting Gunicorn. Run `dvc push` before deploying a commit with new artifact versions. Render Free may sleep and discard local filesystem changes, so the download runs again when a new container starts. [Render environment variables](https://render.com/docs/configure-environment-variables) · [Render Free limits](https://render.com/docs/free)
 
 ---
 
@@ -279,9 +282,6 @@ python -m unittest discover -s tests -v
 
 ---
 
-## 📜 License
-
-GNU General Public License v3.0. See [LICENSE](LICENSE).
 
 ## 👤 Author
 

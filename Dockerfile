@@ -13,7 +13,11 @@ RUN pip install --no-cache-dir -r requirements-serving.txt \
     && useradd --system --gid forecast forecast \
     && install -d -o forecast -g forecast /app/logs
 
-COPY app.py .
+RUN pip install --no-cache-dir boto3==1.43.106 \
+    && install -d -o forecast -g forecast /app/artifacts
+
+COPY app.py dvc.lock .
+COPY scripts/serve.py scripts/serve.py
 COPY config/ config/
 COPY src/ src/
 COPY static/ static/
@@ -22,4 +26,4 @@ COPY templates/ templates/
 USER forecast
 EXPOSE 5000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--worker-class", "gthread", "--threads", "2", "--access-logfile", "-", "app:app"]
+CMD ["python", "scripts/serve.py"]
