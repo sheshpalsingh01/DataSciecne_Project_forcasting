@@ -31,6 +31,8 @@ class DataValidationTrainingPipeline:
             # 1) Validate schema columns
             status = data_validation.validation_all_columns()
             logger.info(f"Column validation status: {status}")
+            if not status:
+                raise ValueError("Ingested data failed column validation.")
 
             # 2) Load dataframe and handle missing values
             df = data_validation.get_dataframe()

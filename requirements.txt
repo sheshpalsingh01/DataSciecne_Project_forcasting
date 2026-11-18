@@ -6,7 +6,7 @@ scikit-learn
 pyyaml
 joblib
 mlflow>=3
-dvc
+dvc[s3]
 dagshub
 python-box
 ensure
