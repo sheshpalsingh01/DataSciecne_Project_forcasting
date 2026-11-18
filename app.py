@@ -28,6 +28,17 @@ def index():
     return render_template("index.html", values={})
 
 
+@app.get("/health")
+def health():
+    try:
+        get_prediction_pipeline()
+    except FileNotFoundError as exc:
+        app.logger.warning("%s", exc)
+        return jsonify(status="unavailable"), 503
+
+    return jsonify(status="ready")
+
+
 @app.post("/predict")
 def predict():
     values = request.form.to_dict()

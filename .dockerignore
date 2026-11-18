@@ -1,0 +1,14 @@
+*
+!Dockerfile
+!requirements-serving.txt
+!app.py
+!config/
+!config/config.yaml
+!src/
+!src/**
+!static/
+!static/**
+!templates/
+!templates/**
+**/__pycache__/
+**/*.pyc

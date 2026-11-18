@@ -57,3 +57,20 @@ curl http://127.0.0.1:5000/api/predict \
 ```
 
 A successful response contains `sales` as a number. Invalid requests return HTTP 400 with an error message. Missing model artifacts return HTTP 503.
+
+## Container and CI/CD
+
+The serving image uses Gunicorn and the Python 3.14 and scikit-learn 1.9.1 versions used to produce the DVC model. Its dependencies are in `requirements-serving.txt`. Compose mounts the trained model and preprocessor as read-only files.
+
+From the project directory, retrieve the artifacts if needed and start the app:
+
+```bash
+dvc pull artifacts/data_transformation artifacts/model_trainer/model.joblib
+docker compose up --build --wait
+```
+
+Open `http://127.0.0.1:5000/`. `GET /health` returns HTTP 200 when the model and preprocessor load. Run `docker compose down` to stop the app.
+
+GitHub Actions builds the image and runs the Flask unit tests on pushes and pull requests. The default branch publishes passing images to GitHub Container Registry with the commit SHA as their tag.
+
+To enable EC2 deployment, register an x86-64 Linux self-hosted runner with the custom label `forecast-ec2`. The runner needs Docker and Compose access. In the GitHub `production` environment, set `FORECAST_ARTIFACTS_DIR` to the absolute artifacts directory on EC2 containing the matching DVC model and preprocessor. Provision those files on the instance with `dvc pull` using its local DagsHub credentials. Run the workflow from the default branch with `deploy` enabled. It pulls the tested image, starts Compose, and waits for readiness. The service binds to the instance's loopback interface for access through a reverse proxy on the host.
