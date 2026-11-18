@@ -279,9 +279,6 @@ python -m unittest discover -s tests -v
 
 ---
 
-## 📜 License
-
-GNU General Public License v3.0. See [LICENSE](LICENSE).
 
 ## 👤 Author
 
