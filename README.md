@@ -4,7 +4,7 @@ A daily sales forecasting project that trains a Random Forest on historical stor
 
 **Render demo** · [Open the forecast app](https://datasciecne-project-forcasting.onrender.com/)
 
-**Demo status** · The form loads. The last prediction check returned HTTP 503 because the model artifacts were missing.
+**Demo status** · Verified on 18 November 2026. The [health endpoint](https://datasciecne-project-forcasting.onrender.com/health) returned `ready`, and the live API returned `7752.08` for the sample payload below.
 
 ---
 
@@ -219,7 +219,7 @@ curl -fsS http://127.0.0.1:5000/api/predict \
   -d '{"Store":1,"Date":"2015-07-31","Open":1,"Promo":1,"StateHoliday":"0","SchoolHoliday":1,"StoreType":"c","Assortment":"a","Promo2":0}'
 ```
 
-With the saved baseline artifacts, the response contains a numeric `sales` value of approximately `7752.08`. Invalid payloads return HTTP 400. Missing inference artifacts return HTTP 503.
+To try the same request on Render, replace `http://127.0.0.1:5000` with `https://datasciecne-project-forcasting.onrender.com`. The sample returns a numeric `sales` value of approximately `7752.08`. Invalid payloads return HTTP 400. Missing inference artifacts return HTTP 503.
 
 Optional inputs are `CompetitionDistance`, `CompetitionOpenSinceMonth`, `CompetitionOpenSinceYear`, `Promo2SinceWeek`, `Promo2SinceYear`, and `PromoInterval`. The same payload also works with `python -m src.forcastingproject.pipeline.prediction_pipeline '<JSON payload>'`.
 
