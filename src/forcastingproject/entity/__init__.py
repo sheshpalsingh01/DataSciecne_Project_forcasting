@@ -19,3 +19,15 @@ class DataTransformationConfig:
     root_dir: Path
     data_path: Path
     reports_dir: Path
+
+
+@dataclass(frozen=True)
+class ModelTrainerConfig:
+    root_dir: Path
+    train_data_path: Path
+    model_name: str
+    target_column: str
+    n_estimators: int
+    max_depth: int | None
+    random_state: int
+    n_jobs: int

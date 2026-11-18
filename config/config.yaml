@@ -14,3 +14,7 @@ data_transformation:
   root_dir: artifacts/data_transformation
   data_path: artifacts/data_ingestion/raw.csv
   reports_dir: artifacts/reports
+
+model_trainer:
+  root_dir: artifacts/model_trainer
+  model_name: model.joblib
