@@ -34,3 +34,14 @@ dvc push
 DVC tracks the source dataset through `data.dvc` and records the five pipeline stages in `dvc.lock`. Editing the `model_trainer` settings in `params.yaml` starts reproduction at model training. DVC runs evaluation with `--local-only` so cache operations do not create MLflow runs. Use the standalone tracking command above to publish a run.
 
 The default remote is the project's DagsHub DVC storage. Configure `access_key_id` and `secret_access_key` for the `dagshub` remote in the Git-ignored `.dvc/config.local` using `dvc remote modify --local` or set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` in your shell environment. Keep credentials in local configuration.
+
+## Predict sales for one store
+
+Use the preprocessor and model artifacts produced by Stages 03 and 04. If they are missing, fetch them with `dvc pull` or build them with `dvc repro model_training`.
+
+```bash
+python -m src.forcastingproject.pipeline.prediction_pipeline \
+  '{"Store":1,"Date":"2015-07-31","Open":1,"Promo":1,"StateHoliday":"0","SchoolHoliday":1,"StoreType":"c","Assortment":"a","Promo2":0}'
+```
+
+The command prints one predicted sales value. Provide competition and recurring promotion details when known. The optional fields are `CompetitionDistance`, `CompetitionOpenSinceMonth`, `CompetitionOpenSinceYear`, `Promo2SinceWeek`, `Promo2SinceYear`, and `PromoInterval`. The pipeline derives calendar features from `Date` and applies the fitted preprocessor. In Python, create a `PredictionPipeline()` once and pass a dictionary or a `CustomData` instance to its `predict()` method for each request.
