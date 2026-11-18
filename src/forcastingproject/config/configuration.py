@@ -1,7 +1,12 @@
 from pathlib import Path
 from src.forcastingproject.constants import CONFIG_FILE_PATH, PARAMS_FILE_PATH, SCHEMA_FILE_PATH
 from src.forcastingproject.utils.common import read_yaml_file, create_directories
-from src.forcastingproject.entity import DataIngestionConfig, DataValidationConfig, DataTransformationConfig
+from src.forcastingproject.entity import (
+    DataIngestionConfig,
+    DataValidationConfig,
+    DataTransformationConfig,
+    ModelTrainerConfig,
+)
 
 class ConfigurationManager:
     def __init__(
@@ -51,6 +56,23 @@ class ConfigurationManager:
             reports_dir=Path(config.reports_dir),
         )
         return data_transformation_config
+
+    def get_model_trainer_config(self) -> ModelTrainerConfig:
+        config = self.config.model_trainer
+        params = self.params.model_trainer
+        create_directories([config.root_dir])
+
+        return ModelTrainerConfig(
+            root_dir=Path(config.root_dir),
+            train_data_path=Path(self.config.data_transformation.root_dir) / "train.csv",
+            model_name=config.model_name,
+            target_column=self.schema.TARGET_COLUMN.name,
+            n_estimators=params.n_estimators,
+            max_depth=params.max_depth,
+            random_state=params.random_state,
+            n_jobs=params.n_jobs,
+        )
+
 
 # Alias for backward compatibility
 ComfigurationManager = ConfigurationManager
